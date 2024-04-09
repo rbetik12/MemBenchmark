@@ -2,6 +2,8 @@
 
 #include "CoreMinimal.h"
 #include "GameFramework/SpectatorPawn.h"
+#include "Interfaces/IHttpResponse.h"
+#include "Interfaces/IHttpRequest.h"
 #include "APerfTestCamera.generated.h"
 
 /**
@@ -18,6 +20,9 @@ class MEMBENCHMARK_API APerfTestCamera : public ASpectatorPawn
 private:
 	void CollectFrameTimes();
 
+	void HandleAuthRequest(FHttpRequestPtr Request, FHttpResponsePtr Response, bool bWasSuccessful);
+	void HandleNewRunRequest(FHttpRequestPtr Request, FHttpResponsePtr Response, bool bWasSuccessful);
+
 	struct PerfStats
 	{
 		float cpuTime;
@@ -30,4 +35,5 @@ private:
 	TArray<PerfStats> statsStorage;
 	FTimerHandle timerHandle;
 	double LastTime;
+	FString	RunId;
 };

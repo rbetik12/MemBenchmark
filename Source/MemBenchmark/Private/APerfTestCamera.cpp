@@ -1,11 +1,24 @@
 #include "APerfTestCamera.h"
+#include "HttpModule.h"
+#include "HttpManager.h"
 #include "HAL/MemoryMisc.h"
 
+UE_DISABLE_OPTIMIZATION
 void APerfTestCamera::BeginPlay()
 {
 	Super::BeginPlay();
 
 	GetWorld()->GetTimerManager().SetTimer(timerHandle, this, &APerfTestCamera::CollectFrameTimes, 0.5f, true);
+
+	FHttpModule& HttpModule = FHttpModule::Get();
+
+	{
+		auto Request = HttpModule.CreateRequest();
+		Request->SetURL(TEXT("http://localhost:3000/api/auth"));
+		Request->SetVerb(TEXT("POST"));
+		Request->OnProcessRequestComplete().BindUObject(this, &APerfTestCamera::HandleAuthRequest);
+		Request->ProcessRequest();
+	}
 }
 
 void APerfTestCamera::EndPlay(const EEndPlayReason::Type EndPlayReason)
@@ -15,7 +28,6 @@ void APerfTestCamera::EndPlay(const EEndPlayReason::Type EndPlayReason)
 	GetWorld()->GetTimerManager().ClearTimer(timerHandle);
 }
 
-UE_DISABLE_OPTIMIZATION
 void APerfTestCamera::CollectFrameTimes()
 {
 	if (const auto world = GetWorld())
@@ -52,14 +64,72 @@ void APerfTestCamera::CollectFrameTimes()
 			GMalloc->GetAllocatorStats(memStats);
 			const auto name = GMalloc->GetDescriptiveName();
 
-			UE_LOG(LogEngine, Display, TEXT("CPU Time: %.2f"), stats.cpuTime);
-			UE_LOG(LogEngine, Display, TEXT("GPU Time: %.2f"), stats.gpuTime);
-
-			int* kek = new int;
-
 			statsStorage.Add(std::move(stats));
 		}
 	}
 }
+
+void APerfTestCamera::HandleAuthRequest(FHttpRequestPtr _, FHttpResponsePtr Response, bool bWasSuccessful)
+{
+	if (!bWasSuccessful)
+	{
+		UE_LOG(LogActor, Error, TEXT("Auth request failed"));
+		return;
+	}
+
+	TArray<FString> DefaultCookies;
+
+	for (auto& header : Response->GetAllHeaders())
+	{
+		if (header.StartsWith("Set-Cookie"))
+		{
+			header.RightChopInline(12);
+			TArray<FString> Cookie;
+			header.ParseIntoArray(Cookie, TEXT(";"));
+
+			DefaultCookies.Add(std::move(Cookie[0]));
+		}
+	}
+
+	FHttpModule& HttpModule = FHttpModule::Get();
+
+	FString CookieHeader;
+
+	for (const auto& cookie : DefaultCookies)
+	{
+		if (DefaultCookies.Num() > 1)
+		{
+			CookieHeader += cookie + TEXT("; ");
+		}
+		else
+		{
+			CookieHeader += cookie;
+		}
+	}
+
+	HttpModule.AddDefaultHeader("Cookie", CookieHeader);
+
+	auto Request = HttpModule.CreateRequest();
+	Request->SetURL(TEXT("http://localhost:3000/api/run/new"));
+	Request->SetVerb(TEXT("POST"));
+	Request->OnProcessRequestComplete().BindUObject(this, &APerfTestCamera::HandleNewRunRequest);
+	Request->ProcessRequest();
+}
+
+void APerfTestCamera::HandleNewRunRequest(FHttpRequestPtr Request, FHttpResponsePtr Response, bool bWasSuccessful)
+{
+	if (!bWasSuccessful || !Response->GetContentType().StartsWith("application/json"))
+	{
+		UE_LOG(LogActor, Error, TEXT("New run request failed"));
+		return;
+	}
+
+	TSharedPtr<FJsonObject> JsonObject = MakeShareable(new FJsonObject());
+	TSharedRef<TJsonReader<TCHAR>> JsonReader = TJsonReaderFactory<TCHAR>::Create(Response->GetContentAsString());
+
+	FJsonSerializer::Deserialize(JsonReader, JsonObject);
+	RunId = JsonObject->GetStringField("id");
+}
+
 UE_ENABLE_OPTIMIZATION
 

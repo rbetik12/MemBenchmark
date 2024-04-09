@@ -39,8 +39,13 @@ public class MemBenchmark : ModuleRules
 				"Slate",
 				"SlateCore",
 				"RHI",
-				"RenderCore"
-			}
+				"RenderCore",
+                "Sockets",
+                "Networking",
+                "Json",
+                "JsonUtilities",
+				"HTTP"
+            }
 			);
 		
 		
