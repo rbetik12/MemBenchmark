@@ -1,6 +1,7 @@
 #include "APerfTestCamera.h"
 #include "HttpModule.h"
 #include "HttpManager.h"
+#include "FRunData.h"
 #include "HAL/MemoryMisc.h"
 
 UE_DISABLE_OPTIMIZATION
@@ -64,7 +65,25 @@ void APerfTestCamera::CollectFrameTimes()
 			GMalloc->GetAllocatorStats(memStats);
 			const auto name = GMalloc->GetDescriptiveName();
 
-			statsStorage.Add(std::move(stats));
+			//statsStorage.Add(std::move(stats));
+
+			FRunData runData;
+			runData.cpuTime = stats.cpuTime;
+			runData.gpuTime = stats.gpuTime;
+			runData.fps = 1.0f / FApp::GetDeltaTime();
+			runData.memAmount = memStats.Data[TEXT("MemAmount")];
+			runData.memopsAmount = memStats.Data[TEXT("Alloc")] + memStats.Data[TEXT("ReAlloc")] + memStats.Data[TEXT("Free")];
+
+			{
+				FHttpModule& HttpModule = FHttpModule::Get();
+				auto Request = HttpModule.CreateRequest();
+				Request->SetURL(FString::Printf(TEXT("http://localhost:3000/api/run/%s/data"), *RunId));
+				Request->SetVerb(TEXT("POST"));
+				Request->SetHeader(TEXT("Content-Type"), TEXT("application/json"));
+				Request->SetContentAsString(runData.ToJSON());
+				Request->OnProcessRequestComplete().BindUObject(this, &APerfTestCamera::HandleRunDataRequest);
+				Request->ProcessRequest();
+			}
 		}
 	}
 }
@@ -129,6 +148,10 @@ void APerfTestCamera::HandleNewRunRequest(FHttpRequestPtr Request, FHttpResponse
 
 	FJsonSerializer::Deserialize(JsonReader, JsonObject);
 	RunId = JsonObject->GetStringField("id");
+}
+
+void APerfTestCamera::HandleRunDataRequest(FHttpRequestPtr Request, FHttpResponsePtr Response, bool bWasSuccessful)
+{
 }
 
 UE_ENABLE_OPTIMIZATION

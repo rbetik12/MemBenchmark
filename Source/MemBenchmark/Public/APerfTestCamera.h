@@ -22,6 +22,7 @@ private:
 
 	void HandleAuthRequest(FHttpRequestPtr Request, FHttpResponsePtr Response, bool bWasSuccessful);
 	void HandleNewRunRequest(FHttpRequestPtr Request, FHttpResponsePtr Response, bool bWasSuccessful);
+	void HandleRunDataRequest(FHttpRequestPtr Request, FHttpResponsePtr Response, bool bWasSuccessful);
 
 	struct PerfStats
 	{
