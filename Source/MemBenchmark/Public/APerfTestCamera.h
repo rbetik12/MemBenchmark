@@ -9,13 +9,18 @@
 /**
  * 
  */
-UCLASS()
+UCLASS(Blueprintable)
 class MEMBENCHMARK_API APerfTestCamera : public ASpectatorPawn
 {
 	GENERATED_BODY()
 
+public:
+
 	virtual void BeginPlay() override;
 	virtual void EndPlay(const EEndPlayReason::Type EndPlayReason) override;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite)
+	bool hasFinishedRoute = false;
 
 private:
 	void CollectFrameTimes();

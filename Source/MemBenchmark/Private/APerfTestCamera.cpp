@@ -31,6 +31,11 @@ void APerfTestCamera::EndPlay(const EEndPlayReason::Type EndPlayReason)
 
 void APerfTestCamera::CollectFrameTimes()
 {
+	if (hasFinishedRoute)
+	{
+		return;
+	}
+
 	if (const auto world = GetWorld())
 	{
 		if (const auto viewport = world->GetGameViewport())
