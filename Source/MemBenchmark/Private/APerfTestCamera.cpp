@@ -33,6 +33,7 @@ void APerfTestCamera::CollectFrameTimes()
 {
 	if (hasFinishedRoute)
 	{
+		FGenericPlatformMisc::RequestExit(false);
 		return;
 	}
 
@@ -69,8 +70,6 @@ void APerfTestCamera::CollectFrameTimes()
 			FGenericMemoryStats memStats;
 			GMalloc->GetAllocatorStats(memStats);
 			const auto name = GMalloc->GetDescriptiveName();
-
-			//statsStorage.Add(std::move(stats));
 
 			FRunData runData;
 			runData.cpuTime = stats.cpuTime;

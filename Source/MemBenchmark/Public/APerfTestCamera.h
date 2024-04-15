@@ -38,7 +38,7 @@ private:
 		float rhiTime;
 	};
 
-	TArray<PerfStats> statsStorage;
+
 	FTimerHandle timerHandle;
 	double LastTime;
 	FString	RunId;
